@@ -94,6 +94,11 @@
                 <hr class="settings-divider">
                 <h4 class="settings-subtitle">聊天设置</h4>
                 <div class="form-group">
+                    <label for="historyLimit">保留对话轮数</label>
+                    <input type="number" id="historyLimit" min="1" max="50" placeholder="默认保留最近10轮对话" />
+                    <small class="help-text">设置保留的最近对话轮数（1-50）</small>
+                </div>
+                <div class="form-group">
                     <label for="userName">您的昵称</label>
                     <input type="text" id="userName" placeholder="显示在您的消息上的名称" />
                 </div>
@@ -110,4 +115,4 @@
 
     <script src="script.js"></script>
 </body>
-</html> 
+</html>

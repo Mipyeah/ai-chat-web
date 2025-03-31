@@ -486,10 +486,9 @@ function getApiHeaders() {
 
 // 根据API提供商构建请求体
 function getApiRequestBody(message) {
-    const messages = [
-        ...getContextMessages(),
-        ...conversations[currentConversationIndex].messages
-    ];
+    const systemMessage = { role: 'system', content: systemPrompt };
+    const historyMessages = conversations[currentConversationIndex].messages.filter(m => m.role !== 'system').slice(-historyLimit);
+    const messages = [systemMessage, ...historyMessages];
     
     return {
         model: selectedModel,
