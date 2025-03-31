@@ -799,6 +799,7 @@ body.keyboard-visible {
     left: 0 !important;
     right: 0 !important;
     bottom: 60px !important;
+    padding-left: 8px !important;
 }
 
 /* 增强安卓输入体验 */
@@ -807,6 +808,8 @@ body.keyboard-visible {
 }
 
 .android #sendBtn {
+    right: 8px !important;
+    bottom: 12px !important;
     z-index: 101 !important;
 }
 
@@ -857,4 +860,4 @@ body.keyboard-visible {
         visibility: visible;
         opacity: 1;
     }
-} 
+}

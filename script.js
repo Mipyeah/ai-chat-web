@@ -842,18 +842,28 @@ function exportConversations() {
         return;
     }
     
-    const exportData = JSON.stringify(conversations, null, 2);
-    const blob = new Blob([exportData], {type: 'application/json'});
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    a.href = url;
-    a.download = `ai-chat-history-${timestamp}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    try {
+        const exportData = JSON.stringify(conversations, null, 2);
+        const blob = new Blob([exportData], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        a.href = url;
+        a.download = `ai-chat-history-${timestamp}.json`;
+        document.body.appendChild(a);
+        a.click();
+        
+        // 添加下载完成提示
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            alert(`成功导出 ${conversations.length} 条对话记录`);
+        }, 100);
+    } catch (error) {
+        alert('导出失败: ' + error.message);
+        console.error('导出错误:', error);
+    }
 }
 
 // 导入对话
@@ -954,4 +964,4 @@ function addCustomStyles() {
 }
 
 // 添加自定义样式
-addCustomStyles(); 
+addCustomStyles();
