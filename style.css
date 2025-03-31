@@ -290,9 +290,11 @@ body {
 .user-message .message-content {
     background-color: var(--message-user-bg);
     color: var(--message-user-text);
-    border-bottom-right-radius: 4px;
-    float: right;
-    clear: both;
+    border-radius: 16px;
+    border-bottom-left-radius: 4px;
+    float: none;
+    clear: none;
+    text-align: left;
 }
 
 .bot-message .message-content {
@@ -300,8 +302,9 @@ body {
     color: var(--text-color);
     border: 1px solid var(--border-color);
     border-bottom-left-radius: 4px;
-    float: left;
     clear: both;
+    margin-left: 0;
+    text-align: left;
 }
 
 .message-sender {
@@ -359,7 +362,6 @@ body {
     padding: 16px;
     background-color: #fff;
     border-top: 1px solid var(--border-color);
-    position: relative;
     transition: padding 0.3s ease, background-color 0.3s ease;
 }
 
@@ -383,9 +385,6 @@ body {
 }
 
 #sendBtn {
-    position: absolute;
-    right: 26px;
-    bottom: 26px;
     background-color: var(--primary-color);
     color: white;
     border: none;
@@ -397,6 +396,7 @@ body {
     justify-content: center;
     cursor: pointer;
     transition: background 0.2s;
+    margin-left: 10px;
 }
 
 #sendBtn:hover {
