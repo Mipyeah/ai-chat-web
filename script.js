@@ -249,11 +249,12 @@ function setupEventListeners() {
     }
     closeModalBtn.addEventListener('click', closeSettingsModal);
     saveSettingsBtn.addEventListener('click', saveSettings);
-    window.addEventListener('click', (e) => {
-        if (e.target === settingsModal) {
-            closeSettingsModal();
-        }
-    });
+    // 移除点击背景关闭弹窗的逻辑
+    // window.addEventListener('click', (e) => {
+    //     if (e.target === settingsModal) {
+    //         closeSettingsModal();
+    //     }
+    // });
     
     // 自动调整文本框高度
     userInput.addEventListener('input', () => {
@@ -667,6 +668,16 @@ function addMessageToConversation(role, content) {
         role: role,
         content: content
     });
+    
+    // 应用历史消息限制
+    const nonSystemMessages = conversations[currentConversationIndex].messages.filter(m => m.role !== 'system');
+    if(nonSystemMessages.length > historyLimit * 2) {
+        const messagesToKeep = nonSystemMessages.slice(-historyLimit);
+        conversations[currentConversationIndex].messages = [
+            ...conversations[currentConversationIndex].messages.filter(m => m.role === 'system'),
+            ...messagesToKeep
+        ];
+    }
 }
 
 // 创建新对话
