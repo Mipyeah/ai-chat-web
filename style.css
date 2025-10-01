@@ -1133,6 +1133,41 @@ body.keyboard-visible {
     background: #c82333;
 }
 
+.toggle-role-btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    margin-right: 8px;
+}
+
+.toggle-role-btn:hover {
+    background: #5a6268;
+}
+
+.toggle-role-btn.enabled {
+    background: #28a745;
+}
+
+.toggle-role-btn.enabled:hover {
+    background: #218838;
+}
+
+.toggle-role-btn.disabled {
+    background: #dc3545;
+}
+
+.toggle-role-btn.disabled:hover {
+    background: #c82333;
+}
+
 .role-prompt {
     width: 100%;
     padding: 12px;
@@ -1159,4 +1194,83 @@ body.keyboard-visible {
 .mode-indicator.multi-ai::before {
     content: "🤖";
     margin-right: 8px;
+}
+/* 设置面板：自动压缩联动与开关样式 */
+.settings-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  align-items: end;
+}
+
+@media (max-width: 768px) {
+  .settings-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.settings-col label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.settings-col input[type="number"],
+.settings-col input[type="text"],
+.settings-col textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.label-title {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 28px;
+  vertical-align: middle;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-switch .slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #cfd8dc;
+  transition: 0.25s ease;
+  border-radius: 28px;
+}
+
+.toggle-switch .slider:before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #fff;
+  transition: 0.25s ease;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.toggle-switch input:checked + .slider {
+  background: #3a86ff;
+}
+
+.toggle-switch input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+.help-text {
+  color: #6b7280;
 }

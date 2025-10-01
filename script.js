@@ -9,6 +9,10 @@ let systemPrompt = '你是一个有用的AI助手，能够回答用户的各种�
 
 let userName = '我'; // 用户昵称
 let enableLogging = false; // 是否启用输出日志
+// 自动压缩与历史保留设置
+let autoCompressEnabled = false;
+let autoCompressThreshold = 50; // 触发压缩的非系统消息条数
+let historyLimit = 10; // 保留最近N轮非系统消息用于上下文
 
 // AI角色管理
 let aiRoles = [
@@ -16,7 +20,8 @@ let aiRoles = [
         id: 1,
         name: 'AI助手',
         prompt: '你是一个有用的AI助手，能够回答用户的各种问题。',
-        order: 1
+        order: 1,
+        enabled: true
         // 移除全局的conversationHistory，改为按对话存储
     }
 ];
@@ -44,6 +49,10 @@ const systemPromptInput = document.getElementById('systemPrompt');
 const userNameInput = document.getElementById('userName');
 const enableLoggingInput = document.getElementById('enableLogging');
 const logManagementSection = document.getElementById('logManagementSection');
+// 自动压缩相关DOM
+const autoCompressEnabledInput = document.getElementById('autoCompressEnabled');
+const autoCompressThresholdInput = document.getElementById('autoCompressThreshold');
+const historyLimitInput = document.getElementById('historyLimit');
 const exportLogsBtn = document.getElementById('exportLogsBtn');
 const clearLogsBtn = document.getElementById('clearLogsBtn');
 const logInfo = document.getElementById('logInfo');
@@ -78,6 +87,31 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 事件监听器
     setupEventListeners();
+
+    // 自动压缩联动：开关控制阈值输入禁用状态；保留轮数作为阈值的最小值
+    const syncThresholdMin = () => {
+        if (!historyLimitInput || !autoCompressThresholdInput) return;
+        const minVal = parseInt(historyLimitInput.value || String(historyLimit || 10), 10) || 10;
+        autoCompressThresholdInput.min = String(minVal);
+        const curVal = parseInt(autoCompressThresholdInput.value || '0', 10) || 0;
+        if (curVal < minVal) {
+            autoCompressThresholdInput.value = String(minVal);
+        }
+    };
+    if (autoCompressEnabledInput && autoCompressThresholdInput) {
+        const updateThresholdState = () => {
+            autoCompressThresholdInput.disabled = !autoCompressEnabledInput.checked;
+        };
+        autoCompressEnabledInput.addEventListener('change', updateThresholdState);
+        updateThresholdState();
+    }
+    if (historyLimitInput) {
+        historyLimitInput.addEventListener('input', syncThresholdMin);
+        syncThresholdMin();
+    }
+    if (autoCompressThresholdInput) {
+        autoCompressThresholdInput.addEventListener('input', syncThresholdMin);
+    }
     
     // 处理键盘事件
     function handleKeyboardVisibility() {
@@ -350,6 +384,13 @@ function openSettingsModal() {
     systemPromptInput.value = systemPrompt || '';
     userNameInput.value = userName || '我';
     enableLoggingInput.checked = enableLogging;
+    if (historyLimitInput) historyLimitInput.value = String(historyLimit || 10);
+    if (autoCompressEnabledInput) autoCompressEnabledInput.checked = !!autoCompressEnabled;
+    if (autoCompressThresholdInput) autoCompressThresholdInput.value = String(autoCompressThreshold || 50);
+    if (autoCompressThresholdInput) {
+        autoCompressThresholdInput.disabled = !(autoCompressEnabledInput && autoCompressEnabledInput.checked);
+        autoCompressThresholdInput.min = String(historyLimit || 10);
+    }
     
     // 更新日志管理区域的显示状态
     updateLogManagementSection();
@@ -367,6 +408,16 @@ function saveSettings() {
     systemPrompt = systemPromptInput.value.trim() || '你是一个有用的AI助手，能够回答用户的各种问题。';
     userName = userNameInput.value.trim() || '我';
     enableLogging = enableLoggingInput.checked;
+
+    // 读取并规范历史保留与自动压缩设置
+    const historyVal = parseInt((historyLimitInput && historyLimitInput.value) || '10', 10);
+    historyLimit = isNaN(historyVal) ? 10 : Math.min(Math.max(historyVal, 1), 50);
+    autoCompressEnabled = !!(autoCompressEnabledInput && autoCompressEnabledInput.checked);
+    const thresholdVal = parseInt((autoCompressThresholdInput && autoCompressThresholdInput.value) || '50', 10);
+    autoCompressThreshold = Math.max(
+        historyLimit,
+        isNaN(thresholdVal) ? 50 : Math.min(Math.max(thresholdVal, 10), 200)
+    );
     
     // 保存发言模式
     const speakMode = document.getElementById('speakMode').value;
@@ -377,6 +428,9 @@ function saveSettings() {
     localStorage.setItem('userName', userName);
     localStorage.setItem('enableLogging', enableLogging);
     localStorage.setItem('speakMode', speakMode);
+    localStorage.setItem('historyLimit', String(historyLimit));
+    localStorage.setItem('autoCompressEnabled', String(autoCompressEnabled));
+    localStorage.setItem('autoCompressThreshold', String(autoCompressThreshold));
     
     // 保存AI角色配置
     saveAIRoles();
@@ -407,6 +461,12 @@ function loadSettings() {
     systemPrompt = localStorage.getItem('systemPrompt') || '你是一个有用的AI助手，能够回答用户的各种问题。';
     userName = localStorage.getItem('userName') || '我';
     enableLogging = localStorage.getItem('enableLogging') === 'true';
+    // 加载历史保留与自动压缩设置
+    historyLimit = parseInt(localStorage.getItem('historyLimit') || '10', 10);
+    if (isNaN(historyLimit)) historyLimit = 10;
+    autoCompressEnabled = localStorage.getItem('autoCompressEnabled') === 'true';
+    autoCompressThreshold = parseInt(localStorage.getItem('autoCompressThreshold') || '50', 10);
+    if (isNaN(autoCompressThreshold)) autoCompressThreshold = 50;
     
     // 加载发言模式
     const speakMode = localStorage.getItem('speakMode') || 'sequential';
@@ -420,6 +480,10 @@ function loadSettings() {
         aiRoles.forEach(role => {
             if (!role.conversationHistory) {
                 role.conversationHistory = [];
+            }
+            // 为现有角色初始化enabled属性（向后兼容）
+            if (role.enabled === undefined) {
+                role.enabled = true;
             }
         });
     }
@@ -440,19 +504,13 @@ function loadSettings() {
 // 更新模式指示器
 function updateModeIndicator() {
     if (modeText) {
-        // 根据AI角色数量显示不同的模式
-        if (aiRoles.length > 1) {
-            modeText.textContent = `${aiRoles.length}AI对话模式`;
-            modeIndicator.classList.add('multi-ai');
+        const enabledCount = aiRoles.filter(role => role.enabled !== false).length;
+        if (enabledCount > 0) {
+            modeText.textContent = `启用AI：${enabledCount}个`;
         } else {
-            // 根据API提供商显示不同的模式
-            if (apiProvider === 'deepseek') {
-                modeText.textContent = 'DeepSeek AI模式';
-            } else if (apiProvider === 'openai') {
-                modeText.textContent = 'OpenAI AI模式';
-            } else {
-                modeText.textContent = '单AI模式';
-            }
+            modeText.textContent = '无启用AI';
+        }
+        if (modeIndicator) {
             modeIndicator.classList.remove('multi-ai');
         }
     }
@@ -554,6 +612,8 @@ async function sendMessage() {
         
         // 更新本地存储
         saveConversations();
+        // 触发自动压缩（如启用且满足条件）
+        await autoCompressCurrentConversationIfNeeded();
         
     } catch (error) {
         // 移除加载消息
@@ -1047,30 +1107,36 @@ function saveConversations() {
     localStorage.setItem('conversations', JSON.stringify(conversations));
 }
 
-// 导出所有对话
+// 导出当前选中对话
 function exportConversations() {
     if (conversations.length === 0) {
         alert('没有对话可导出');
         return;
     }
+
+    const index = (currentConversationIndex >= 0 && currentConversationIndex < conversations.length)
+        ? currentConversationIndex
+        : 0;
+    const conv = conversations[index];
     
     try {
-        const exportData = JSON.stringify(conversations, null, 2);
-        const blob = new Blob([exportData], {type: 'application/json'});
+        if (!conv.roleHistories) conv.roleHistories = {};
+        const exportData = JSON.stringify(conv, null, 2);
+        const blob = new Blob([exportData], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         
         const a = document.createElement('a');
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const safeTitle = (conv.title || '对话').replace(/[\\/:*?"<>|]/g, '').slice(0, 50);
         a.href = url;
-        a.download = `ai-chat-history-${timestamp}.json`;
+        a.download = `ai-chat-${safeTitle || conv.id}-${timestamp}.json`;
         document.body.appendChild(a);
         a.click();
         
-        // 添加下载完成提示
         setTimeout(() => {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            alert(`成功导出 ${conversations.length} 条对话记录`);
+            alert(`成功导出当前对话：${conv.title || conv.id}`);
         }, 100);
     } catch (error) {
         alert('导出失败: ' + error.message);
@@ -1092,31 +1158,42 @@ function importConversations() {
         reader.onload = (e) => {
             try {
                 const importedData = JSON.parse(e.target.result);
-                
-                if (Array.isArray(importedData) && importedData.length > 0) {
-                    // 检查是否有有效的对话结构
-                    const validImport = importedData.every(conv => 
-                        typeof conv === 'object' && 
-                        conv.id && 
-                        conv.title && 
-                        Array.isArray(conv.messages)
-                    );
-                    
+
+                const isArray = Array.isArray(importedData);
+                const isSingle = !isArray && typeof importedData === 'object' && importedData !== null;
+
+                const validateConv = (conv) => (
+                    typeof conv === 'object' &&
+                    conv.id &&
+                    conv.title &&
+                    Array.isArray(conv.messages)
+                );
+
+                if (isArray && importedData.length > 0) {
+                    const validImport = importedData.every(validateConv);
                     if (validImport) {
                         if (confirm('确定要导入这些对话吗？这将合并到您当前的对话中。')) {
-                            // 合并导入的对话
                             conversations = [...importedData, ...conversations];
+                            // 兼容缺失的roleHistories
+                            conversations.forEach(c => { if (!c.roleHistories) c.roleHistories = {}; });
                             saveConversations();
-                            
-                            // 重新加载界面
                             currentConversationIndex = 0;
                             displayCurrentConversation();
                             renderConversationsList();
-                            
                             alert(`成功导入了 ${importedData.length} 个对话。`);
                         }
                     } else {
                         alert('无效的对话文件格式');
+                    }
+                } else if (isSingle && validateConv(importedData)) {
+                    if (confirm('确定要导入此对话吗？这将添加到您当前的对话中。')) {
+                        if (!importedData.roleHistories) importedData.roleHistories = {};
+                        conversations = [importedData, ...conversations];
+                        saveConversations();
+                        currentConversationIndex = 0;
+                        displayCurrentConversation();
+                        renderConversationsList();
+                        alert('成功导入了 1 个对话。');
                     }
                 } else {
                     alert('导入的文件不包含有效的对话数据');
@@ -1203,6 +1280,9 @@ function renderRolesList() {
                 <span class="role-order">角色${role.order}</span>
                 <input type="text" class="role-name" value="${role.name}" placeholder="角色昵称" 
                        data-index="${index}">
+                <button class="toggle-role-btn" data-index="${index}" title="${role.enabled !== false ? '禁用角色' : '启用角色'}">
+                    <i class="fas ${role.enabled !== false ? 'fa-eye' : 'fa-eye-slash'}"></i>
+                </button>
                 <button class="delete-role-btn" data-index="${index}" title="删除角色">
                     <i class="fas fa-trash"></i>
                 </button>
@@ -1214,6 +1294,7 @@ function renderRolesList() {
         // 绑定事件处理器
         const nameInput = roleDiv.querySelector('.role-name');
         const promptTextarea = roleDiv.querySelector('.role-prompt');
+        const toggleBtn = roleDiv.querySelector('.toggle-role-btn');
         const deleteBtn = roleDiv.querySelector('.delete-role-btn');
         
         nameInput.addEventListener('change', function() {
@@ -1223,7 +1304,13 @@ function renderRolesList() {
         promptTextarea.addEventListener('change', function() {
             updateRolePrompt(index, this.value);
         });
-        
+
+        toggleBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleRoleEnabled(index);
+        });
+
         deleteBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -1239,7 +1326,8 @@ function addRole() {
         id: Date.now(),
         name: `角色${aiRoles.length + 1}`,
         prompt: '你是一个有用的AI助手，能够回答用户的各种问题。',
-        order: aiRoles.length + 1
+        order: aiRoles.length + 1,
+        enabled: true
         // 移除全局的conversationHistory
     };
     
@@ -1259,6 +1347,25 @@ function updateRolePrompt(index, prompt) {
     if (index >= 0 && index < aiRoles.length) {
         aiRoles[index].prompt = prompt.trim() || '你是一个有用的AI助手，能够回答用户的各种问题。';
         saveAIRoles();
+    }
+}
+
+function toggleRoleEnabled(index) {
+    if (index >= 0 && index < aiRoles.length) {
+        // 检查是否至少有一个角色保持启用状态
+        const enabledRoles = aiRoles.filter(role => role.enabled !== false);
+        
+        if (enabledRoles.length === 1 && aiRoles[index].enabled !== false) {
+            alert('至少需要保留一个启用的AI角色');
+            return;
+        }
+        
+        // 切换启用状态
+        aiRoles[index].enabled = aiRoles[index].enabled === false ? true : false;
+        
+        renderRolesList();
+        saveAIRoles();
+        updateModeIndicator();
     }
 }
 
@@ -1302,12 +1409,20 @@ async function processSequentialMode(userMessage) {
     const conversationHistory = conversations[currentConversationIndex].messages;
     const aiReplies = [];
     
-    // 为每个角色依次构建上下文并获取回复
+    // 过滤出启用的角色
+    const enabledRoles = aiRoles.filter(role => role.enabled !== false);
+    
+    if (enabledRoles.length === 0) {
+        addErrorMessageToUI('没有启用的AI角色可以回复');
+        return;
+    }
+    
+    // 为每个启用的角色依次构建上下文并获取回复
     // 将 userInputContent 提升到函数作用域，便于循环结束后使用
     let userInputContent = '';
     
-    for (let i = 0; i < aiRoles.length; i++) {
-        const currentRole = aiRoles[i];
+    for (let i = 0; i < enabledRoles.length; i++) {
+        const currentRole = enabledRoles[i];
         
         // 获取该AI角色在当前对话中的独立历史记录
         const roleSpecificMessages = getRoleConversationHistory(currentRole.id, conversations[currentConversationIndex].id);
@@ -1427,6 +1542,14 @@ async function processSequentialMode(userMessage) {
 async function processSimultaneousMode(userMessage) {
     const conversationHistory = conversations[currentConversationIndex].messages;
     
+    // 过滤出启用的角色
+    const enabledRoles = aiRoles.filter(role => role.enabled !== false);
+    
+    if (enabledRoles.length === 0) {
+        addErrorMessageToUI('没有启用的AI角色可以回复');
+        return;
+    }
+    
     // 构建用户输入内容，包含其他AI的回复
     let userInputContent = `[${userName}]：${userMessage}`;
     
@@ -1440,8 +1563,8 @@ async function processSimultaneousMode(userMessage) {
         );
         
         if (hasPreviousAIReplies) {
-            // 获取当前对话中所有AI角色的消息
-            for (const currentRole of aiRoles) {
+            // 获取当前对话中所有启用AI角色的消息
+            for (const currentRole of enabledRoles) {
                 const roleMessages = conversationHistory.filter(msg =>
                     msg.role === 'assistant' && msg.aiName === currentRole.name
                 );
@@ -1458,8 +1581,8 @@ async function processSimultaneousMode(userMessage) {
         }
     }
     
-    // 所有AI同时处理相同的输入
-    const promises = aiRoles.map(async (currentRole) => {
+    // 所有启用的AI同时处理相同的输入
+    const promises = enabledRoles.map(async (currentRole) => {
         // 获取该AI角色在当前对话中的独立历史记录
         const roleSpecificMessages = getRoleConversationHistory(currentRole.id, conversations[currentConversationIndex].id);
         
@@ -1743,5 +1866,59 @@ function updateRoleConversationHistory(roleId, conversationId, messages) {
     // 限制历史记录长度
     if (conversation.roleHistories[roleId].length > 40) {
         conversation.roleHistories[roleId] = conversation.roleHistories[roleId].slice(-40);
+    }
+}
+
+// 自动压缩当前对话：将较早的消息压缩为摘要，保留最近historyLimit条
+async function autoCompressCurrentConversationIfNeeded() {
+    try {
+        if (!autoCompressEnabled) return;
+        const conv = conversations[currentConversationIndex];
+        if (!conv || !Array.isArray(conv.messages)) return;
+
+        const nonSystemMessages = conv.messages.filter(m => m.role !== 'system');
+        if (nonSystemMessages.length < autoCompressThreshold) return;
+
+        // 保留最近historyLimit条，压缩其之前的消息
+        const keepCount = Math.max(1, historyLimit || 10);
+        const toKeep = nonSystemMessages.slice(-keepCount);
+        const toCompress = nonSystemMessages.slice(0, nonSystemMessages.length - keepCount);
+        if (toCompress.length === 0) return;
+
+        // 构建压缩请求：使用现有API接口
+        const rolePrompt = aiRoles[currentRoleIndex]?.prompt || '';
+        const combinedPrompt = `${systemPrompt}\n\n角色设定：${rolePrompt}\n\n你是一名对话压缩助手。请将给定的历史对话内容总结为一段结构清晰的摘要，保留关键事实、结论、任务和未决事项。避免丢失重要上下文，避免逐条复述，长度尽量精炼。`;
+        const systemMessage = { role: 'system', content: combinedPrompt };
+        const userSummaryRequest = {
+            role: 'user',
+            content: `以下是较早的历史消息，请压缩为摘要：\n\n${toCompress.map(m => `[${m.role === 'user' ? (userName || '用户') : (m.aiName || '助手')}] ${m.content}`).join('\n')}`
+        };
+
+        const url = getApiUrl();
+        const headers = getApiHeaders();
+        const body = { model: apiProvider === 'openai' ? 'gpt-3.5-turbo' : 'deepseek-chat', messages: [systemMessage, userSummaryRequest] };
+        const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+        if (!response.ok) throw new Error(`压缩API错误: ${response.status} - ${response.statusText}`);
+        const data = await response.json();
+        const summary = getApiResponseContent(data);
+
+        // 用一个摘要消息替换被压缩的历史
+        const summaryMessage = { role: 'assistant', content: `【对话摘要】\n${summary}` };
+
+        // 重建对话：保留系统消息、摘要、最近消息
+        const systemMessages = conv.messages.filter(m => m.role === 'system');
+        conv.messages = [...systemMessages, summaryMessage, ...toKeep];
+
+        // 标题可选优化：标记已压缩
+        conv.title = conv.title || `对话-${conv.id || ''}`;
+        if (!/（已压缩）/.test(conv.title)) {
+            conv.title = `${conv.title}（已压缩）`;
+        }
+
+        saveConversations();
+        renderConversationsList();
+    } catch (err) {
+        console.error('自动压缩失败:', err);
+        // 保守处理：不打断正常流程
     }
 }

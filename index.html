@@ -22,7 +22,7 @@
                 <!-- 历史记录将在JS中动态添加 -->
             </div>
             <div class="sidebar-footer">
-                <button id="exportHistoryBtn" title="导出所有对话"><i class="fas fa-download"></i> 导出对话</button>
+                <button id="exportHistoryBtn" title="导出当前对话"><i class="fas fa-download"></i> 导出对话</button>
                 <button id="importHistoryBtn" title="导入对话"><i class="fas fa-upload"></i> 导入对话</button>
             </div>
         </div>
@@ -36,7 +36,6 @@
                 </div>
                 <div class="model-selector">
                     <span class="mode-indicator" id="modeIndicator" title="当前模式">
-                        <i class="fas fa-robot"></i>
                         <span id="modeText">单AI模式</span>
                     </span>
                 </div>
@@ -90,13 +89,29 @@
                 </div>
                 <div class="form-group nickname-row">
                     <div class="nickname-group">
-                        <label for="historyLimit">保留对话轮数</label>
-                        <input type="number" id="historyLimit" min="1" max="50" placeholder="默认保留最近10轮对话" />
-                        <small class="help-text">设置保留的最近对话轮数（1-50）</small>
-                    </div>
-                    <div class="nickname-group">
                         <label for="userName">您的昵称</label>
                         <input type="text" id="userName" placeholder="显示在您的消息上的名称" />
+                    </div>
+                </div>
+                <!-- 自动压缩设置（与保留轮数联动） -->
+                <div class="form-group settings-row">
+                    <div class="settings-col">
+                        <label class="label-title">自动压缩对话</label>
+                        <label class="toggle-switch" title="超过阈值自动压缩；关闭则不压缩">
+                            <input type="checkbox" id="autoCompressEnabled" />
+                            <span class="slider"></span>
+                        </label>
+                        <small class="help-text">超过阈值自动生成摘要并替换旧记录</small>
+                    </div>
+                    <div class="settings-col">
+                        <label for="historyLimit">保留对话轮数</label>
+                        <input type="number" id="historyLimit" min="1" max="50" placeholder="默认保留最近10轮对话" />
+                        <small class="help-text">上下文保留轮数（1-50）</small>
+                    </div>
+                    <div class="settings-col">
+                        <label for="autoCompressThreshold">压缩阈值（条）</label>
+                        <input type="number" id="autoCompressThreshold" min="10" max="200" placeholder="建议≥保留轮数×3" />
+                        <small class="help-text">阈值应≥保留轮数；建议≥保留轮数×3</small>
                     </div>
                 </div>
                 <div class="form-group">
