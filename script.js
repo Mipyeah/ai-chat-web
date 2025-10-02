@@ -995,10 +995,23 @@ function displayCurrentConversation() {
         return;
     }
     
-    // 显示所有消息
-    conversations[currentConversationIndex].messages.forEach(msg => {
-        addMessageToUI(msg.role, msg.content, msg.aiName);
-    });
+    // 优先显示压缩摘要（如存在），其余消息按原顺序显示
+    const msgs = conversations[currentConversationIndex].messages;
+    const summaryIndex = msgs.findIndex(m => m.role === 'assistant' && typeof m.content === 'string' && m.content.startsWith('【对话摘要】'));
+    if (summaryIndex !== -1) {
+        const summaryMsg = msgs[summaryIndex];
+        addMessageToUI(summaryMsg.role, summaryMsg.content, summaryMsg.aiName);
+        msgs.forEach((msg, idx) => {
+            if (idx !== summaryIndex) {
+                addMessageToUI(msg.role, msg.content, msg.aiName);
+            }
+        });
+    } else {
+        // 显示所有消息
+        msgs.forEach(msg => {
+            addMessageToUI(msg.role, msg.content, msg.aiName);
+        });
+    }
 }
 
 // 渲染对话列表
@@ -1513,10 +1526,8 @@ async function processSequentialMode(userMessage) {
     
     // 添加消息到对话
     if (aiReplies.length > 0) {
-        // 在对话历史中保存用户输入（包含其他AI的回复，供AI理解上下文）
-        addMessageToConversation('user', userInputContent);
-        
-        // 添加AI回复
+        // 不再回填包含其他AI回复的用户消息到对话，避免重复显示
+        // 仅添加AI回复到对话与界面
         aiReplies.forEach((reply) => {
             addMessageToConversation('assistant', reply.content, reply.name);
             addMessageToUI('assistant', reply.content, reply.name);
@@ -1650,10 +1661,8 @@ async function processSimultaneousMode(userMessage) {
     
     // 添加消息到对话
     if (successfulReplies.length > 0) {
-        // 添加用户消息到对话历史（包含其他AI的回复，用于AI理解上下文）
-        addMessageToConversation('user', userInputContent);
-        
-        // 添加AI回复
+        // 不再回填包含其他AI回复的用户消息到对话，避免重复显示
+        // 仅添加AI回复到对话与界面
         successfulReplies.forEach((reply) => {
             addMessageToConversation('assistant', reply.content, reply.name);
             addMessageToUI('assistant', reply.content, reply.name);
@@ -1905,7 +1914,7 @@ async function autoCompressCurrentConversationIfNeeded() {
         // 用一个摘要消息替换被压缩的历史
         const summaryMessage = { role: 'assistant', content: `【对话摘要】\n${summary}` };
 
-        // 重建对话：保留系统消息、摘要、最近消息
+        // 重建对话：保留系统消息、摘要、最近消息（存储逻辑保持不变）
         const systemMessages = conv.messages.filter(m => m.role === 'system');
         conv.messages = [...systemMessages, summaryMessage, ...toKeep];
 
@@ -1917,6 +1926,10 @@ async function autoCompressCurrentConversationIfNeeded() {
 
         saveConversations();
         renderConversationsList();
+        // 刷新当前对话，使摘要作为顶部消息立即显示
+        if (currentConversationIndex >= 0 && currentConversationIndex < conversations.length) {
+            displayCurrentConversation();
+        }
     } catch (err) {
         console.error('自动压缩失败:', err);
         // 保守处理：不打断正常流程
